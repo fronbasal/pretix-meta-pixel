@@ -3,7 +3,9 @@ Pretix Meta Pixel
 
 This is a plugin for `pretix`_. 
 
-A crude Pretix plugin for integrating Meta Pixel tracking
+A crude Pretix plugin for integrating Meta Pixel tracking.
+
+Warning: adds unsafe-eval to CSP. Please consider before using.
 
 Development setup
 -----------------
