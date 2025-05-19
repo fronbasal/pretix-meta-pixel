@@ -1,0 +1,5 @@
+[plugin]
+package = "pretix-meta-pixel"
+modules = [ "pretix_meta_pixel" ]
+marketplace_name = "meta-pixel"
+
