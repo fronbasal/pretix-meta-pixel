@@ -16,7 +16,9 @@ class PluginApp(PluginConfig):
     class PretixPluginMeta:
         name = gettext_lazy("Pretix Meta Pixel")
         author = "Daniel Malik"
-        description = gettext_lazy("A crude Pretix plugin for integrating Meta Pixel tracking")
+        description = gettext_lazy(
+            "A crude Pretix plugin for integrating Meta Pixel tracking"
+        )
         visible = True
         version = __version__
         category = "INTEGRATION"

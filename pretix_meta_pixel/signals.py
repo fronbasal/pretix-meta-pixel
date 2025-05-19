@@ -1,15 +1,15 @@
 import logging
 import secrets
 from base64 import b64encode
-
 from django.dispatch import receiver
 from django.urls import resolve, reverse
 from django.utils.translation import gettext_lazy as _
 
 # noinspection PyProtectedMember
 from pretix.base.middleware import _merge_csp, _parse_csp, _render_csp
+from pretix.base.models import Order
 from pretix.control.signals import nav_event_settings
-from pretix.presale.signals import html_page_header, process_response
+from pretix.presale.signals import html_head, order_info_top, process_response
 
 logger = logging.getLogger(__name__)
 
@@ -28,13 +28,23 @@ def navbar_event_settings(sender, request, **kwargs):
                 },
             ),
             "active": url.namespace == "plugins:pretix_meta_pixel"
-                      and url.url_name.startswith("settings"),
+            and url.url_name.startswith("settings"),
         }
     ]
 
 
-@receiver(html_page_header, dispatch_uid="meta_pixel_html_page_header")
-def html_page_header_presale(sender, request, **kwargs):
+@receiver(order_info_top, dispatch_uid="meta_pixel_order_info_top")
+def order_info_top_presale(sender, request, order: Order, **kwargs):
+    pixel_id = sender.settings.get("meta_pixel_id")
+
+    if pixel_id and request.GET.get("thanks") == "1":
+        return f"<script>fbq('track', 'Purchase', {{value: {order.total}, currency: {sender.currency}}});</script>"
+
+    return ""
+
+
+@receiver(html_head, dispatch_uid="meta_pixel_html_page_head")
+def html_page_head_presale(sender, request, **kwargs):
     pixel_id = sender.settings.get("meta_pixel_id")
 
     if not pixel_id:
@@ -52,9 +62,18 @@ def html_page_header_presale(sender, request, **kwargs):
     fbq('init', '{pixel_id}');
     fbq('track', 'PageView');
     """
+
+    if "checkout/questions" in request.path:
+        script_content += """
+        fbq('track', 'InitiateCheckout');
+        """
+    elif "checkout/payment" in request.path:
+        script_content += """
+        fbq('track', 'AddPaymentInfo');
+        """
+
     noscript_content = f"""
-    <noscript><img height="1" width="1" style="display:none"
-    src="https://www.facebook.com/tr?id={pixel_id}&ev=PageView&noscript=1"/></noscript>
+    <noscript><img height="1" width="1" style="display:none" src="https://www.facebook.com/tr?id={pixel_id}&ev=PageView&noscript=1"/></noscript>
     """
 
     nonce = b64encode(secrets.token_bytes(16)).decode()
